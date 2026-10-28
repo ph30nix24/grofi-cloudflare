@@ -1,0 +1,146 @@
+import { Suspense } from "react";
+import { Metadata } from "next";
+import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
+import prisma from "@/libs/db";
+import { BusinessLoanLender } from "./components/type";
+import BusinessLoanHero from "./components/BusinessLoanHero";
+import BusinessLoanExplorer from "./components/BusinessLoanExplorer";
+import BusinessLoanEmiCalculator from "./components/BusinessLoanEmiCalculator";
+import BusinessLoanComparisonTable from "./components/BusinessLoanComparisonTable";
+import BusinessLoanSchemesGuide from "./components/BusinessLoanSchemesGuide";
+import BusinessLoanStepsSection from "./components/BusinessLoanStepsSection";
+import BusinessLoanEligibilityGuide from "./components/BusinessLoanEligibilityGuide";
+import BusinessLoanFAQSection from "./components/BusinessLoanFAQSection";
+import BusinessLoanTrustSection from "./components/BusinessLoanTrustSection";
+import JsonLd from "@/app/components/JsonLd";
+import { buildBusinessLoansHubJsonLd } from "@/libs/structuredData";
+
+export const metadata: Metadata = {
+  metadataBase: new URL("https://www.grofi.in"),
+  title: "Compare Best Business Loans & MSME Finance in India (2026) | Rates from 8.85% - Grofi",
+  description:
+    "Compare and apply for business loans and working capital credit lines up to ₹2 Crore across 12+ leading Indian commercial banks and NBFCs including HDFC, SBI, ICICI, Axis, PNB, Bank of Baroda, Bajaj Finserv & Tata Capital. Collateral-free options, CGTMSE support, 48-hr disbursal, and ₹0 credit score impact on pre-approval.",
+  alternates: { canonical: "/business-loans" },
+  keywords: [
+    "business loans",
+    "MSME loans",
+    "compare business loans",
+    "best business loan India",
+    "lowest business loan interest rate",
+    "collateral free business loan",
+    "unsecured business loan",
+    "working capital loan",
+    "cgtmse loan scheme",
+    "mudra loan",
+    "hdfc business growth loan",
+    "sbi simplified small business loan",
+    "icici instaod",
+    "axis bank msme samriddhi",
+    "pnb gst express",
+    "bank of baroda sme loan",
+    "bajaj finserv flexi business loan",
+    "tata capital msme loan",
+    "business loan emi calculator",
+    "paperless business loan",
+    "Grofi business loans",
+  ],
+  openGraph: {
+    title: "Compare Best Business Loans in India | Rates from 8.85% p.a. - Grofi",
+    description:
+      "Fuel your enterprise with India's lowest business loan rates from 8.85% p.a. Collateral-free sanctions up to ₹75 Lakhs, credit lines up to ₹2 Crore, and 48-hour digital disbursals.",
+    url: "https://www.grofi.in/business-loans",
+    siteName: "Grofi",
+    locale: "en_IN",
+    type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Compare Best Business Loans & MSME Credit in India - Grofi",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Compare Best Business Loans & MSME Credit in India | Grofi",
+    description:
+      "Compare 12+ banks & NBFCs. Collateral-free options, CGTMSE coverage, and fast digital GST verification.",
+    images: ["/og-image.png"],
+  },
+};
+
+// Revalidate every hour
+export const revalidate = 3600;
+
+async function fetchBusinessLoans(): Promise<BusinessLoanLender[]> {
+  try {
+    const rawData = await prisma.businessLoanData.findMany({
+      orderBy: [
+        { startingEmiPerLakh: "asc" },
+        { rating: "desc" },
+      ],
+    })
+    return JSON.parse(JSON.stringify(rawData)) as BusinessLoanLender[];
+  } catch (error) {
+    console.error("Failed to fetch business loans from database:", error);
+    return [];
+  }
+}
+
+export default async function BusinessLoansPage() {
+  const lenders = await fetchBusinessLoans();
+
+  const jsonLd = buildBusinessLoansHubJsonLd(lenders);
+
+  return (
+    <>
+      <JsonLd schema={jsonLd} />
+
+      <main className="flex flex-col min-h-screen bg-[#FDFBF7]">
+        <Navbar />
+
+        {/* Hero Section with Partner Bank Logos & Pre-Approval Hero Form */}
+        <BusinessLoanHero />
+
+        {/* Interactive Marketplace Explorer (Category Pills, Filters, Cards, Comparison Dock, Modals) */}
+        <Suspense
+          fallback={
+            <div className="min-h-100 flex items-center justify-center text-sm text-gray-500 font-montserrat">
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-8 h-8 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
+                <span>Loading MSME & business loan lenders...</span>
+              </div>
+            </div>
+          }
+        >
+          <BusinessLoanExplorer initialLenders={lenders} />
+        </Suspense>
+
+        {/* Commercial & MSME EMI Calculator with Amortization Schedule */}
+        <BusinessLoanEmiCalculator />
+
+        {/* 2026 Rates, Fees & Collateral Matrix Comparison Table */}
+        <BusinessLoanComparisonTable lenders={lenders} />
+
+        {/* Indian Government MSME Schemes & Subsidies Guide (CGTMSE, MUDRA, Stand-Up, PMEGP) */}
+        <BusinessLoanSchemesGuide />
+
+        {/* 4-Step Digital Disbursal Journey */}
+        <BusinessLoanStepsSection />
+
+        {/* Entity-Wise Eligibility & Mandatory Document Checklist */}
+        <BusinessLoanEligibilityGuide />
+
+        {/* Searchable & Categorized FAQs */}
+        <BusinessLoanFAQSection />
+
+        {/* Bank-Grade Security & Trust Guarantees */}
+        <BusinessLoanTrustSection />
+
+        <Footer />
+      </main>
+    </>
+  );
+}
